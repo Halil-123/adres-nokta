@@ -1,86 +1,46 @@
 package com.adresnokta.app;
 
-import android.app.*;
-import android.os.*;
-import android.content.*;
-import android.graphics.Typeface;
-import android.net.Uri;
-import android.view.*;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.*;
-import org.json.*;
-import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import android.app.*; import android.os.*; import android.content.*; import android.graphics.*; import android.graphics.drawable.*;
+import android.net.*; import android.view.*; import android.widget.*; import org.json.*; import java.io.*; import java.net.*; import java.nio.charset.StandardCharsets; import java.util.*;
 
 public class MainActivity extends Activity {
-    EditText input;
-    LinearLayout results;
-    TextView status;
+ final int BLUE=Color.rgb(20,120,242), TEXT=Color.rgb(15,35,70), MUTED=Color.rgb(90,110,140);
+ LinearLayout root,form; TextView info; Spinner il,ilce,mahalle,sokak,bina; boolean lock=false;
+ ArrayList<String> iller=new ArrayList<>(), ilceler=new ArrayList<>(), mahalleler=new ArrayList<>(), sokaklar=new ArrayList<>(), binalar=new ArrayList<>();
+ String[] IL={"İl seçin","Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"};
 
-    @Override public void onCreate(Bundle b) {
-        super.onCreate(b);
-        ScrollView scroll=new ScrollView(this);
-        LinearLayout root=new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL); root.setPadding(40,55,40,40);
-        scroll.addView(root);
-
-        TextView title=new TextView(this); title.setText("Adres Nokta"); title.setTextSize(30); title.setTypeface(null,Typeface.BOLD);
-        root.addView(title);
-        TextView sub=new TextView(this); sub.setText("Türkiye'deki açık adresi bulun ve Google Maps ile navigasyonu başlatın."); sub.setTextSize(16); sub.setPadding(0,12,0,28); root.addView(sub);
-
-        input=new EditText(this); input.setHint("İl / İlçe / Mahalle / Sokak / No"); input.setMinLines(3); input.setGravity(Gravity.TOP); root.addView(input,new LinearLayout.LayoutParams(-1,-2));
-        Button find=new Button(this); find.setText("ADRESİ BUL"); root.addView(find,new LinearLayout.LayoutParams(-1,-2));
-        status=new TextView(this); status.setPadding(0,20,0,10); status.setTextSize(15); root.addView(status);
-        results=new LinearLayout(this); results.setOrientation(LinearLayout.VERTICAL); root.addView(results);
-        TextView attribution=new TextView(this); attribution.setText("Adres verisi © OpenStreetMap katkıda bulunanlar • Nominatim"); attribution.setTextSize(12); attribution.setPadding(0,30,0,20); root.addView(attribution);
-        setContentView(scroll);
-        find.setOnClickListener(v->search());
-    }
-
-    void search() {
-        String q=input.getText().toString().trim();
-        if(q.length()<5){ Toast.makeText(this,"Lütfen daha ayrıntılı bir adres girin.",Toast.LENGTH_SHORT).show(); return; }
-        ((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(input.getWindowToken(),0);
-        results.removeAllViews(); status.setText("Adres aranıyor…");
-        new Thread(()->{
-            try{
-                String url="https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tr&addressdetails=1&limit=5&q="+URLEncoder.encode(q,"UTF-8");
-                HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();
-                c.setRequestProperty("User-Agent","AdresNokta/1.0 (Android)");
-                c.setConnectTimeout(12000); c.setReadTimeout(12000);
-                BufferedReader r=new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder s=new StringBuilder(); String line; while((line=r.readLine())!=null)s.append(line); r.close();
-                JSONArray a=new JSONArray(s.toString());
-                runOnUiThread(()->showResults(a));
-            }catch(Exception e){ runOnUiThread(()->status.setText("Adres sorgulanamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.")); }
-        }).start();
-    }
-
-    void showResults(JSONArray a){
-        results.removeAllViews();
-        if(a.length()==0){status.setText("Eşleşen adres bulunamadı. İl, ilçe, mahalle, sokak ve kapı numarasını yazarak tekrar deneyin.");return;}
-        status.setText(a.length()==1?"1 sonuç bulundu.":"Birden fazla sonuç bulundu. Doğru adresi seçin:");
-        for(int i=0;i<a.length();i++) try{
-            JSONObject o=a.getJSONObject(i);
-            String name=o.optString("display_name");
-            double lat=o.getDouble("lat"), lon=o.getDouble("lon");
-            JSONObject ad=o.optJSONObject("address");
-            boolean building=ad!=null && ad.has("house_number");
-            LinearLayout card=new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(24,22,24,22);
-            TextView t=new TextView(this); t.setText(name); t.setTextSize(16); t.setTypeface(null,Typeface.BOLD); card.addView(t);
-            TextView p=new TextView(this); p.setText((building?"✓ Kapı/bina numarası bulundu":"⚠ Bina düzeyinde kesin sonuç bulunamadı")+"\nKonum: "+lat+", "+lon); p.setPadding(0,10,0,10); card.addView(p);
-            Button go=new Button(this); go.setText("GOOGLE MAPS İLE GİT"); go.setOnClickListener(v->navigate(lat,lon)); card.addView(go);
-            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2); cp.setMargins(0,8,0,18); results.addView(card,cp);
-        }catch(Exception ignored){}
-    }
-
-    void navigate(double lat,double lon){
-        Uri nav=Uri.parse("google.navigation:q="+lat+","+lon+"&mode=d");
-        Intent i=new Intent(Intent.ACTION_VIEW,nav); i.setPackage("com.google.android.apps.maps");
-        try{startActivity(i);}catch(Exception e){
-            startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/dir/?api=1&destination="+lat+","+lon)));
-        }
-    }
+ @Override public void onCreate(Bundle b){super.onCreate(b); build();}
+ GradientDrawable bg(int color,float r){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(r);return g;}
+ TextView txt(String s,int sp,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(sp);t.setTextColor(TEXT);if(bold)t.setTypeface(null,Typeface.BOLD);return t;}
+ void build(){
+  ScrollView sv=new ScrollView(this); sv.setBackgroundColor(Color.rgb(248,250,253)); root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(32,38,32,40);sv.addView(root);
+  LinearLayout head=new LinearLayout(this);head.setGravity(Gravity.CENTER_VERTICAL);
+  TextView pin=txt("●",30,true);pin.setTextColor(BLUE);head.addView(pin); LinearLayout ht=new LinearLayout(this);ht.setOrientation(LinearLayout.VERTICAL);ht.setPadding(16,0,0,0);
+  ht.addView(txt("Adres Nokta",28,true)); TextView sub=txt("Türkiye için hızlı ve kademeli adres arama",14,false);sub.setTextColor(MUTED);ht.addView(sub);head.addView(ht);root.addView(head);
+  form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(24,24,24,24);form.setBackground(bg(Color.WHITE,28)); LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,-2);fp.setMargins(0,28,0,18);root.addView(form,fp);
+  il=field("İl"); ilce=field("İlçe"); mahalle=field("Mahalle"); sokak=field("Sokak / Cadde"); bina=field("Bina Numarası");
+  set(il,Arrays.asList(IL)); disable(ilce,"Önce il seçin");disable(mahalle,"Önce ilçe seçin");disable(sokak,"Önce mahalle seçin");disable(bina,"Önce sokak seçin");
+  Button go=new Button(this);go.setText("⌕   ADRESİ GETİR");go.setTextColor(Color.WHITE);go.setTextSize(17);go.setTypeface(null,Typeface.BOLD);go.setBackground(bg(BLUE,20));LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,150);bp.setMargins(0,22,0,0);form.addView(go,bp);
+  info=txt("Seçimlere İl ile başlayın.",14,false);info.setTextColor(MUTED);root.addView(info);
+  TextView osm=txt("Adres verisi © OpenStreetMap katkıda bulunanlar",12,false);osm.setTextColor(MUTED);osm.setPadding(0,30,0,0);root.addView(osm);
+  il.setOnItemSelectedListener(listener(()->loadDistricts())); ilce.setOnItemSelectedListener(listener(()->loadNeighbourhoods())); mahalle.setOnItemSelectedListener(listener(()->loadStreets())); sokak.setOnItemSelectedListener(listener(()->loadNumbers()));
+  go.setOnClickListener(v->resolve());
+  setContentView(sv);
+ }
+ Spinner field(String label){TextView l=txt(label,15,true);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,12,0,6);form.addView(l,lp);Spinner s=new Spinner(this);s.setBackground(bg(Color.rgb(244,248,253),18));s.setPadding(16,0,12,0);form.addView(s,new LinearLayout.LayoutParams(-1,120));return s;}
+ AdapterView.OnItemSelectedListener listener(Runnable r){return new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?>p){}public void onItemSelected(AdapterView<?>p,View v,int pos,long id){if(!lock&&pos>0)r.run();}};}
+ void set(Spinner s,List<String> x){lock=true;ArrayAdapter<String>a=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,x);s.setAdapter(a);s.setEnabled(true);lock=false;}
+ void disable(Spinner s,String hint){set(s,Arrays.asList(hint));s.setEnabled(false);}
+ String val(Spinner s){return s.getSelectedItem()==null?"":s.getSelectedItem().toString();}
+ void busy(String s){runOnUiThread(()->info.setText(s));}
+ String get(String u)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(u).openConnection();c.setRequestProperty("User-Agent","AdresNokta/2.0 Android");c.setConnectTimeout(15000);c.setReadTimeout(20000);BufferedReader r=new BufferedReader(new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8));StringBuilder b=new StringBuilder();String x;while((x=r.readLine())!=null)b.append(x);r.close();return b.toString();}
+ String enc(String s)throws Exception{return URLEncoder.encode(s,"UTF-8");}
+ void loadDistricts(){String city=val(il); disable(ilce,"Yükleniyor…");disable(mahalle,"Önce ilçe seçin");disable(sokak,"Önce mahalle seçin");disable(bina,"Önce sokak seçin");new Thread(()->{try{String q="[out:json];area[\"name\"=\""+city+"\"][\"boundary\"=\"administrative\"][\"admin_level\"=\"4\"]->.a;rel(area.a)[\"boundary\"=\"administrative\"][\"admin_level\"=\"6\"];out tags;";JSONArray es=new JSONObject(get("https://overpass-api.de/api/interpreter?data="+enc(q))).getJSONArray("elements");TreeSet<String> z=new TreeSet<>();for(int i=0;i<es.length();i++){String n=es.getJSONObject(i).optJSONObject("tags").optString("name");if(!n.isEmpty())z.add(n);}ArrayList<String>a=new ArrayList<>();a.add("İlçe seçin");a.addAll(z);runOnUiThread(()->{set(ilce,a);info.setText(a.size()>1?"İlçe seçin.":"İlçe verisi bulunamadı.");});}catch(Exception e){busy("İlçe listesi alınamadı. Tekrar deneyin.");}}, "district").start();}
+ void loadNeighbourhoods(){String city=val(il),d=val(ilce);disable(mahalle,"Yükleniyor…");disable(sokak,"Önce mahalle seçin");disable(bina,"Önce sokak seçin");overpassNames("[out:json];area[\"name\"=\""+d+"\"][\"boundary\"=\"administrative\"]->.a;(nwr(area.a)[\"place\"=\"neighbourhood\"];nwr(area.a)[\"place\"=\"quarter\"];nwr(area.a)[\"place\"=\"suburb\"];);out tags;",mahalle,"Mahalle seçin","Mahalle");}
+ void loadStreets(){String d=val(ilce),m=val(mahalle);disable(sokak,"Yükleniyor…");disable(bina,"Önce sokak seçin");new Thread(()->{try{String nq="https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tr&limit=1&q="+enc(m+", "+d+", "+val(il)+", Türkiye");JSONArray na=new JSONArray(get(nq));if(na.length()==0)throw new Exception();JSONArray bb=na.getJSONObject(0).getJSONArray("boundingbox");String q="[out:json];way("+bb.getString(0)+","+bb.getString(2)+","+bb.getString(1)+","+bb.getString(3)+")[\"highway\"][\"name\"];out tags;";JSONArray es=new JSONObject(get("https://overpass-api.de/api/interpreter?data="+enc(q))).getJSONArray("elements");TreeSet<String>z=new TreeSet<>();for(int i=0;i<es.length();i++){JSONObject t=es.getJSONObject(i).optJSONObject("tags");if(t!=null){String n=t.optString("name");if(!n.isEmpty())z.add(n);}}ArrayList<String>a=new ArrayList<>();a.add("Sokak / Cadde seçin");a.addAll(z);runOnUiThread(()->{set(sokak,a);info.setText(a.size()>1?"Sokak veya cadde seçin.":"Sokak verisi bulunamadı.");});}catch(Exception e){busy("Sokak listesi alınamadı.");}}).start();}
+ void loadNumbers(){String street=val(sokak),d=val(ilce);disable(bina,"Yükleniyor…");new Thread(()->{try{String q="[out:json];area[\"name\"=\""+d+"\"][\"boundary\"=\"administrative\"]->.a;nwr(area.a)[\"addr:street\"=\""+street.replace(""","")+"\"][\"addr:housenumber\"];out tags center;";JSONArray es=new JSONObject(get("https://overpass-api.de/api/interpreter?data="+enc(q))).getJSONArray("elements");TreeSet<String>z=new TreeSet<>((a,b)->a.compareToIgnoreCase(b));for(int i=0;i<es.length();i++){JSONObject t=es.getJSONObject(i).optJSONObject("tags");if(t!=null){String n=t.optString("addr:housenumber");if(!n.isEmpty())z.add(n);}}ArrayList<String>a=new ArrayList<>();a.add("Bina numarası seçin");a.addAll(z);runOnUiThread(()->{set(bina,a);info.setText(a.size()>1?"Bina numarasını seçin.":"Bu sokakta kayıtlı bina numarası bulunamadı.");});}catch(Exception e){busy("Bina numaraları alınamadı.");}}).start();}
+ void overpassNames(String q,Spinner target,String first,String what){new Thread(()->{try{JSONArray es=new JSONObject(get("https://overpass-api.de/api/interpreter?data="+enc(q))).getJSONArray("elements");TreeSet<String>z=new TreeSet<>();for(int i=0;i<es.length();i++){JSONObject t=es.getJSONObject(i).optJSONObject("tags");if(t!=null){String n=t.optString("name");if(!n.isEmpty())z.add(n);}}ArrayList<String>a=new ArrayList<>();a.add(first);a.addAll(z);runOnUiThread(()->{set(target,a);info.setText(a.size()>1?what+" seçin.":what+" verisi bulunamadı.");});}catch(Exception e){busy(what+" listesi alınamadı.");}}).start();}
+ void resolve(){if(!bina.isEnabled()||bina.getSelectedItemPosition()==0){info.setText("Lütfen bina numarasına kadar seçim yapın.");return;}String address=val(bina)+" "+val(sokak)+", "+val(mahalle)+", "+val(ilce)+", "+val(il)+", Türkiye";busy("Adres doğrulanıyor…");new Thread(()->{try{String u="https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tr&addressdetails=1&limit=1&street="+enc(val(bina)+" "+val(sokak))+"&city="+enc(val(ilce))+"&state="+enc(val(il));JSONArray a=new JSONArray(get(u));if(a.length()==0)throw new Exception();JSONObject o=a.getJSONObject(0);double lat=o.getDouble("lat"),lon=o.getDouble("lon");runOnUiThread(()->detail(address,lat,lon));}catch(Exception e){busy("Seçilen adres için koordinat bulunamadı.");}}).start();}
+ void detail(String a,double lat,double lon){root.removeAllViews();TextView back=txt("‹   Adres Detayı",25,true);back.setPadding(0,12,0,25);back.setOnClickListener(v->build());root.addView(back);LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(28,28,28,28);card.setBackground(bg(Color.WHITE,28));TextView pin=txt("●  "+a,19,true);pin.setTextColor(TEXT);card.addView(pin);TextView co=txt("\nKoordinatlar\n"+lat+", "+lon,15,false);co.setTextColor(MUTED);card.addView(co);Button map=new Button(this);map.setText("➤  GOOGLE MAPS'TE AÇ");map.setTextColor(Color.WHITE);map.setTextSize(16);map.setBackground(bg(BLUE,18));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,140);p.setMargins(0,28,0,0);card.addView(map,p);map.setOnClickListener(v->nav(lat,lon));root.addView(card);}
+ void nav(double lat,double lon){Intent i=new Intent(Intent.ACTION_VIEW,Uri.parse("google.navigation:q="+lat+","+lon+"&mode=d"));i.setPackage("com.google.android.apps.maps");try{startActivity(i);}catch(Exception e){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/dir/?api=1&destination="+lat+","+lon)));}}
 }
