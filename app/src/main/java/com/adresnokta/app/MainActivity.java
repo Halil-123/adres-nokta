@@ -9,7 +9,8 @@ public class MainActivity extends Activity {
  ArrayList<String> iller=new ArrayList<>(), ilceler=new ArrayList<>(), mahalleler=new ArrayList<>(), sokaklar=new ArrayList<>(), binalar=new ArrayList<>();
  String[] IL={"İl seçin","Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"};
 
- @Override public void onCreate(Bundle b){super.onCreate(b); build();}\n int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
+ @Override public void onCreate(Bundle b){super.onCreate(b); build();}
+ int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
  GradientDrawable bg(int color,float r){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(r);return g;}
  TextView txt(String s,int sp,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(sp);t.setTextColor(TEXT);if(bold)t.setTypeface(null,Typeface.BOLD);return t;}
  void build(){
